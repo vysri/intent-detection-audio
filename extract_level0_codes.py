@@ -1,5 +1,6 @@
 import json
 import os
+import torch
 from datasets import load_dataset, Audio
 from transformers import MimiModel, AutoFeatureExtractor
 
@@ -8,7 +9,11 @@ def extract_level0_codes(split, output_file, n_samples):
     """Extract level 0 codes from streaming LibriSpeech dataset."""
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {device}")
+
     model = MimiModel.from_pretrained("kyutai/mimi")
+    model.to(device)
     feature_extractor = AutoFeatureExtractor.from_pretrained("kyutai/mimi")
 
     dataset = load_dataset("openslr/librispeech_asr", "clean", split=split, streaming=True)
@@ -33,6 +38,7 @@ def extract_level0_codes(split, output_file, n_samples):
                 return_tensors="pt"
             )
 
+            inputs["input_values"] = inputs["input_values"].to(device)
             encoder_outputs = model.encode(inputs["input_values"])
             all_codes = encoder_outputs.audio_codes.squeeze()  # Shape: (32, T) or (T,) if single level
 
