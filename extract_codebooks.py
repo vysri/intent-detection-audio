@@ -18,16 +18,16 @@ if hasattr(model, "quantizer"):
     if hasattr(quantizer, "semantic_residual_vector_quantizer"):
         semantic_vq = quantizer.semantic_residual_vector_quantizer
 
-        if hasattr(semantic_vq, "codebooks"):
-            codebook = semantic_vq.codebooks[0]
-            if hasattr(codebook, "weight"):
-                vectors = codebook.weight.data.detach().cpu()
-                codebooks.append(vectors)
-                print(f"Semantic level: shape {vectors.shape}")
-            else:
-                print("ERROR: Codebook has no weight attribute")
+        # Access the first (and only) layer's codebook
+        vq_layer = semantic_vq.layers[0]
+        codebook = vq_layer.codebook
+
+        if hasattr(codebook, "embed"):
+            vectors = codebook.embed.data.detach().cpu()
+            codebooks.append(vectors)
+            print(f"Semantic level: shape {vectors.shape}")
         else:
-            print("ERROR: Semantic VQ has no codebooks attribute")
+            print("ERROR: Codebook has no embed attribute")
 
 # Save codebooks
 if codebooks:
