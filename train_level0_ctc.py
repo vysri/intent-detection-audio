@@ -6,13 +6,22 @@ from level0_common import Level0CodesDataset, collate_fn, VOCAB_SIZE
 
 
 class Level0CTCModel(nn.Module):
-    """CTC model: linear projection of 32-dim code vectors → bidirectional GRU → linear → log_softmax."""
+    """CTC model: use frozen Mimi codebook vectors → bidirectional GRU → linear → log_softmax."""
 
-    def __init__(self, vocab_size=VOCAB_SIZE, code_dim=32, hidden_dim=128):
+    def __init__(self, vocab_size=VOCAB_SIZE, codebooks=None, hidden_dim=128):
         super().__init__()
-        self.code_projection = nn.Linear(code_dim, 64)
+        # Register codebooks as buffers (not parameters, so not trained)
+        if codebooks is None:
+            raise ValueError("codebooks must be provided")
+
+        self.num_levels = len(codebooks)
+        self.embed_dim = codebooks[0].shape[1]
+
+        for i, codebook in enumerate(codebooks):
+            self.register_buffer(f"codebook_{i}", codebook)
+
         self.gru = nn.GRU(
-            64,
+            self.embed_dim * self.num_levels,
             hidden_dim,
             num_layers=2,
             bidirectional=True,
@@ -23,11 +32,20 @@ class Level0CTCModel(nn.Module):
 
     def forward(self, codes, lengths):
         """
-        codes: (batch, seq_len, 32) tensor of code vectors
+        codes: (batch, seq_len, 32) tensor of code indices
         lengths: (batch,) tensor of actual sequence lengths
         returns: (batch, seq_len, vocab_size) log probabilities
         """
-        x = self.code_projection(codes)
+        # Look up codebook vectors for each level and concatenate
+        codes = codes.long()
+        embedded_levels = []
+        for i in range(self.num_levels):
+            codebook = getattr(self, f"codebook_{i}")
+            level_codes = codes[:, :, i]  # (batch, seq_len)
+            level_vectors = codebook[level_codes]  # (batch, seq_len, embed_dim)
+            embedded_levels.append(level_vectors)
+
+        x = torch.cat(embedded_levels, dim=2)  # (batch, seq_len, embed_dim * 32)
 
         packed = nn.utils.rnn.pack_padded_sequence(
             x, lengths.cpu(), batch_first=True, enforce_sorted=False
@@ -44,7 +62,12 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}\n")
 
-    model = Level0CTCModel().to(device)
+    # Load frozen Mimi codebooks
+    print("Loading Mimi codebooks...")
+    codebooks = torch.load("mimi_codebooks.pt")
+    codebooks = [cb.to(device) for cb in codebooks]
+
+    model = Level0CTCModel(codebooks=codebooks).to(device)
     dataset = Level0CodesDataset("data/train.jsonl")
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
 

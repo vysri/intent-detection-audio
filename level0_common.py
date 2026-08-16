@@ -34,7 +34,7 @@ class Level0CodesDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
         # codes is now a list of lists: [[code_0, code_1, ..., code_31], ...]
-        codes = torch.tensor(sample["codes"], dtype=torch.float32)
+        codes = torch.tensor(sample["codes"], dtype=torch.long)
         text_ids = torch.tensor(text_to_ids(sample["text"]), dtype=torch.long)
         return codes, text_ids
 
