@@ -39,7 +39,12 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}\n")
 
-    model = Level0CTCModel().to(device)
+    # Load frozen Mimi codebooks
+    print("Loading Mimi codebooks...")
+    codebooks = torch.load("mimi_codebooks.pt")
+    codebooks = [cb.to(device) for cb in codebooks]
+
+    model = Level0CTCModel(codebooks=codebooks).to(device)
     model.load_state_dict(torch.load("checkpoints/level0_ctc.pt", map_location=device))
 
     print("Evaluating on Validation split...")
