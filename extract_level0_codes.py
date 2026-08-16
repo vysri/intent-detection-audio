@@ -40,12 +40,12 @@ def extract_level0_codes(split, output_file, n_samples):
 
             inputs["input_values"] = inputs["input_values"].to(device)
             encoder_outputs = model.encode(inputs["input_values"])
-            all_codes = encoder_outputs.audio_codes.squeeze()  # Shape: (32, T) or (T,) if single level
+            all_codes = encoder_outputs.semantic_codes.squeeze(0)  # Remove batch dim: (1, 1, T) → (1, T)
 
-            # Transpose to (T, 32) and convert to list of lists
+            # Transpose to (T, 1) and convert to list of lists
             if all_codes.dim() == 1:
                 all_codes = all_codes.unsqueeze(0)  # Handle edge case of single timestep
-            all_codes_t = all_codes.t()  # Now (T, 32)
+            all_codes_t = all_codes.t()  # Now (T, 1)
             codes_list = all_codes_t.tolist()
 
             record = {

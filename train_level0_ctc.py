@@ -32,7 +32,7 @@ class Level0CTCModel(nn.Module):
 
     def forward(self, codes, lengths):
         """
-        codes: (batch, seq_len, 32) tensor of code indices
+        codes: (batch, seq_len, num_levels) tensor of code indices
         lengths: (batch,) tensor of actual sequence lengths
         returns: (batch, seq_len, vocab_size) log probabilities
         """
@@ -45,7 +45,7 @@ class Level0CTCModel(nn.Module):
             level_vectors = codebook[level_codes]  # (batch, seq_len, embed_dim)
             embedded_levels.append(level_vectors)
 
-        x = torch.cat(embedded_levels, dim=2)  # (batch, seq_len, embed_dim * 32)
+        x = torch.cat(embedded_levels, dim=2)  # (batch, seq_len, embed_dim * num_levels)
 
         packed = nn.utils.rnn.pack_padded_sequence(
             x, lengths.cpu(), batch_first=True, enforce_sorted=False
