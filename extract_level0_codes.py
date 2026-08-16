@@ -40,13 +40,16 @@ def extract_level0_codes(split, output_file, n_samples):
 
             inputs["input_values"] = inputs["input_values"].to(device)
             encoder_outputs = model.encode(inputs["input_values"])
-            all_codes = encoder_outputs.semantic_codes.squeeze(0)  # Remove batch dim: (1, 1, T) → (1, T)
+            all_codes = encoder_outputs.audio_codes  # Shape: (1, 32, T)
 
-            # Transpose to (T, 1) and convert to list of lists
-            if all_codes.dim() == 1:
-                all_codes = all_codes.unsqueeze(0)  # Handle edge case of single timestep
-            all_codes_t = all_codes.t()  # Now (T, 1)
-            codes_list = all_codes_t.tolist()
+            # Extract only the semantic level (first level, index 0)
+            semantic_codes = all_codes[:, 0, :]  # (1, T)
+            semantic_codes = semantic_codes.squeeze(0)  # (T,)
+
+            # Reshape to (T, 1) and convert to list of lists
+            if semantic_codes.dim() == 0:
+                semantic_codes = semantic_codes.unsqueeze(0)  # Handle single value
+            codes_list = semantic_codes.unsqueeze(1).tolist()  # (T, 1)
 
             record = {
                 "codes": codes_list,
