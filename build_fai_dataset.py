@@ -6,7 +6,7 @@ from transformers import MimiModel, AutoFeatureExtractor
 import soundfile as sf
 import librosa
 
-def build_fai_dataset(input_dir, output_file, batch_size=8):
+def build_fai_dataset(input_dir, output_file, batch_size=8, checkpoint_interval=10):
     """
     Scan fluent-ai-excerpt folder, extract semantic codes for each audio,
     and save mapping to JSONL. Uses batching for faster processing.
@@ -32,8 +32,11 @@ def build_fai_dataset(input_dir, output_file, batch_size=8):
     records_buffer = []
     processed = 0
     failed = 0
+    batch_num = 0
+    output_file_handle = open(output_file, "w")
 
     for idx in range(0, len(json_files), batch_size):
+        batch_num += 1
         batch_json_paths = json_files[idx : idx + batch_size]
         batch_audio_arrays = []
         batch_metadatas = []
@@ -108,15 +111,18 @@ def build_fai_dataset(input_dir, output_file, batch_size=8):
             failed += valid_batch_size
             continue
 
-        # Print progress
-        if (idx // batch_size + 1) % 10 == 0:
-            print(f"  Processed {idx + valid_batch_size}/{len(json_files)} samples...")
+        # Checkpoint: write records every N batches
+        if batch_num % checkpoint_interval == 0:
+            for record in records_buffer:
+                output_file_handle.write(json.dumps(record) + "\n")
+            output_file_handle.flush()
+            print(f"  Processed {processed}/{len(json_files)} samples... (checkpoint written)")
+            records_buffer = []
 
-    # Write all records to file
-    print(f"\nWriting {len(records_buffer)} records to {output_file}...")
-    with open(output_file, "w") as out_f:
-        for record in records_buffer:
-            out_f.write(json.dumps(record) + "\n")
+    # Write remaining records
+    for record in records_buffer:
+        output_file_handle.write(json.dumps(record) + "\n")
+    output_file_handle.close()
 
     print(f"\nFinished!")
     print(f"  Processed: {processed}")
