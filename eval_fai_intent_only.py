@@ -112,7 +112,8 @@ def evaluate_dataset(jsonl_path, model_path, codebooks_path, threshold=0.0):
         confusion[true][pred] += 1
 
     # Print confusion matrix
-    print(f"\n{'True \\ Pred':<20}", end="")
+    header = "True \\ Pred"
+    print(f"\n{header:<20}", end="")
     for intent in sorted(INTENTS):
         print(f"{intent:<12}", end="")
     print()
