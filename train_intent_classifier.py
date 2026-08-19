@@ -13,16 +13,21 @@ ID_TO_INTENT = {idx: intent for intent, idx in INTENT_TO_ID.items()}
 
 
 class IntentDataset(Dataset):
-    """Load semantic codes and intent labels from JSONL."""
+    """Load RVQ codes and intent labels from JSONL."""
 
-    def __init__(self, jsonl_path, codebooks):
+    def __init__(self, jsonl_path, codebooks, num_levels):
         self.samples = []
         self.codebooks = codebooks
+        self.num_levels = num_levels
 
         with open(jsonl_path, "r") as f:
             for line in f:
                 sample = json.loads(line)
                 if sample["action"] in INTENT_TO_ID:
+                    # Validate number of levels
+                    assert sample["num_levels"] == num_levels, \
+                        f"Sample has {sample['num_levels']} levels but expected {num_levels}. " \
+                        f"Run build_fai_dataset.py with --num-levels={sample['num_levels']}"
                     self.samples.append(sample)
 
     def __len__(self):
@@ -31,15 +36,22 @@ class IntentDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
 
-        # Get semantic codes
-        semantic_codes = sample["semantic_codes"]  # List of code indices
+        # Get codes (shape: num_frames, num_levels)
+        codes = sample["codes"]
 
-        # Look up codebook vectors for each code
-        codebook = self.codebooks[0]  # Only 1 semantic level
-        code_vectors = codebook[semantic_codes]  # (num_frames, embed_dim)
+        # Look up codebook vectors for each level and concatenate
+        all_vectors = []
+        for level in range(self.num_levels):
+            level_codes = [frame[level] for frame in codes]
+            codebook = self.codebooks[level]
+            level_vectors = codebook[level_codes]  # (num_frames, embed_dim)
+            all_vectors.append(level_vectors)
+
+        # Concatenate all levels: (num_frames, embed_dim * num_levels)
+        code_vectors = torch.cat(all_vectors, dim=1)
 
         # Average pool over time to get fixed vector
-        code_vector = code_vectors.mean(dim=0)  # (embed_dim,)
+        code_vector = code_vectors.mean(dim=0)  # (embed_dim * num_levels,)
 
         # Get intent label
         intent_id = INTENT_TO_ID[sample["action"]]
@@ -67,20 +79,30 @@ class IntentClassifier(nn.Module):
         return x
 
 
-def train():
+def train(num_levels=1):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}\n")
+    print(f"Training with {num_levels} RVQ level(s)\n")
 
     # Load codebooks (frozen)
     print("Loading Mimi codebooks...")
-    codebooks = torch.load("mimi_codebooks.pt")
+    all_codebooks = torch.load("mimi_codebooks.pt")
+    assert len(all_codebooks) >= num_levels, \
+        f"Only {len(all_codebooks)} levels available but {num_levels} requested. " \
+        f"Run build_fai_dataset.py with --num-levels={num_levels}"
+
+    codebooks = all_codebooks[:num_levels]
     codebooks = [cb.to(device) for cb in codebooks]
-    input_dim = codebooks[0].shape[1]
-    print(f"Codebook embedding dim: {input_dim}\n")
+
+    # Calculate input dimension based on number of levels
+    embed_dim = codebooks[0].shape[1]
+    input_dim = embed_dim * num_levels
+    print(f"Codebook embedding dim per level: {embed_dim}")
+    print(f"Total input dim ({num_levels} levels): {input_dim}\n")
 
     # Load dataset
     print("Loading dataset...")
-    dataset = IntentDataset("fai_dataset.jsonl", codebooks)
+    dataset = IntentDataset("fai_dataset.jsonl", codebooks, num_levels)
     print(f"Loaded {len(dataset)} samples\n")
 
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
@@ -120,5 +142,11 @@ def train():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num-levels", type=int, default=1, help="Number of RVQ levels to use (1-32)")
+    args = parser.parse_args()
+
     print("Training Intent Classifier...\n")
-    train()
+    train(num_levels=args.num_levels)

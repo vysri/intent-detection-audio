@@ -6,11 +6,17 @@ from transformers import MimiModel, AutoFeatureExtractor
 import soundfile as sf
 import librosa
 
-def build_fai_dataset(input_dir, output_file, batch_size=8, checkpoint_interval=10):
+def build_fai_dataset(input_dir, output_file, batch_size=8, checkpoint_interval=10, num_levels=1):
     """
-    Scan fluent-ai-excerpt folder, extract semantic codes for each audio,
+    Scan fluent-ai-excerpt folder, extract RVQ codes for each audio,
     and save mapping to JSONL. Uses batching for faster processing.
+
+    Args:
+        num_levels: Number of RVQ levels to extract (default 1 = semantic only)
+                   Example: num_levels=5 extracts levels 0-4
     """
+    assert num_levels >= 1, "num_levels must be >= 1"
+    assert num_levels <= 32, "num_levels must be <= 32 (Mimi has 32 total levels)"
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}\n")
@@ -89,15 +95,25 @@ def build_fai_dataset(input_dir, output_file, batch_size=8, checkpoint_interval=
             with torch.no_grad():
                 encoder_outputs = model.encode(inputs["input_values"])
 
-            # Extract semantic codes for each sample
+            # Extract codes for each sample
             for i, (json_path, metadata, audio_path) in enumerate(batch_metadatas):
-                semantic_codes = encoder_outputs.audio_codes[i, 0, :].cpu().tolist()
+                # Extract specified number of levels
+                codes_list = []
+                for level in range(num_levels):
+                    level_codes = encoder_outputs.audio_codes[i, level, :].cpu().tolist()
+                    codes_list.append(level_codes)
+
+                # Transpose to (num_frames, num_levels)
+                num_frames = len(codes_list[0])
+                codes_by_frame = [[codes_list[level][frame] for level in range(num_levels)]
+                                 for frame in range(num_frames)]
 
                 record = {
                     "json_filename": json_path.name,
                     "audio_path": str(audio_path.absolute()),
-                    "semantic_codes": semantic_codes,
-                    "num_frames": len(semantic_codes),
+                    "codes": codes_by_frame,  # Shape: (num_frames, num_levels)
+                    "num_frames": num_frames,
+                    "num_levels": num_levels,
                     "action": metadata.get("action", "unknown"),
                     "object": metadata.get("object", "unknown"),
                     "location": metadata.get("location", "none"),
@@ -131,9 +147,17 @@ def build_fai_dataset(input_dir, output_file, batch_size=8, checkpoint_interval=
 
 
 if __name__ == "__main__":
-    input_dir = "fluent-ai-excerpt"
-    output_file = "fai_dataset.jsonl"
+    import argparse
 
-    print("Building Fluent AI dataset with semantic codes...\n")
-    build_fai_dataset(input_dir, output_file)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", default="fluent-ai-excerpt", help="Input directory")
+    parser.add_argument("--output", default="fai_dataset.jsonl", help="Output JSONL file")
+    parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
+    parser.add_argument("--checkpoint-interval", type=int, default=10, help="Checkpoint every N batches")
+    parser.add_argument("--num-levels", type=int, default=1, help="Number of RVQ levels to extract (1-32)")
+
+    args = parser.parse_args()
+
+    print(f"Building Fluent AI dataset with {args.num_levels} RVQ level(s)...\n")
+    build_fai_dataset(args.input, args.output, args.batch_size, args.checkpoint_interval, args.num_levels)
     print("Done!")

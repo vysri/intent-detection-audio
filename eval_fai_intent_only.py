@@ -6,7 +6,7 @@ from collections import defaultdict
 import numpy as np
 from train_intent_classifier import IntentClassifier, INTENTS, INTENT_TO_ID
 
-def evaluate_dataset(jsonl_path, model_path, codebooks_path, threshold=0.0):
+def evaluate_dataset(jsonl_path, model_path, codebooks_path, num_levels=1, threshold=0.0):
     """
     Evaluate intent classifier on entire dataset.
 
@@ -14,28 +14,42 @@ def evaluate_dataset(jsonl_path, model_path, codebooks_path, threshold=0.0):
         jsonl_path: Path to JSONL dataset (output of build_fai_dataset.py)
         model_path: Path to trained model checkpoint
         codebooks_path: Path to frozen codebooks
+        num_levels: Number of RVQ levels used (must match training)
         threshold: Confidence threshold for prediction (0.0 = no threshold)
     """
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}\n")
+    print(f"Using device: {device}")
+    print(f"Evaluating with {num_levels} RVQ level(s)\n")
 
-    # Load model and codebooks
-    print("Loading model and codebooks...")
-    model = IntentClassifier().to(device)
+    # Load codebooks
+    print("Loading codebooks...")
+    all_codebooks = torch.load(codebooks_path)
+    assert len(all_codebooks) >= num_levels, \
+        f"Only {len(all_codebooks)} levels available but {num_levels} requested."
+
+    codebooks = all_codebooks[:num_levels]
+    codebooks = [cb.to(device) for cb in codebooks]
+
+    # Load model
+    print("Loading model...")
+    embed_dim = codebooks[0].shape[1]
+    input_dim = embed_dim * num_levels
+    model = IntentClassifier(input_dim=input_dim, num_intents=len(INTENTS)).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-
-    codebooks = torch.load(codebooks_path)
-    codebooks = [cb.to(device) for cb in codebooks]
-    codebook = codebooks[0]
 
     # Load dataset
     print(f"Loading dataset from {jsonl_path}...")
     samples = []
     with open(jsonl_path, "r") as f:
         for line in f:
-            samples.append(json.loads(line))
+            sample = json.loads(line)
+            # Validate number of levels
+            assert sample.get("num_levels", 1) == num_levels, \
+                f"Sample has {sample.get('num_levels', 1)} levels but expected {num_levels}. " \
+                f"Run build_fai_dataset.py with --num-levels={sample.get('num_levels', 1)}"
+            samples.append(sample)
 
     print(f"Loaded {len(samples)} samples\n")
 
@@ -51,11 +65,18 @@ def evaluate_dataset(jsonl_path, model_path, codebooks_path, threshold=0.0):
             if idx % 100 == 0:
                 print(f"  Processed {idx}/{len(samples)}...")
 
-            # Get semantic codes
-            semantic_codes = sample["semantic_codes"]
+            # Get codes and look up vectors for each level
+            codes = sample["codes"]  # Shape: (num_frames, num_levels)
 
-            # Look up codebook vectors
-            code_vectors = codebook[semantic_codes]
+            all_vectors = []
+            for level in range(num_levels):
+                level_codes = [frame[level] for frame in codes]
+                codebook = codebooks[level]
+                level_vectors = codebook[level_codes]  # (num_frames, embed_dim)
+                all_vectors.append(level_vectors)
+
+            # Concatenate all levels
+            code_vectors = torch.cat(all_vectors, dim=1)  # (num_frames, embed_dim * num_levels)
             code_vector = code_vectors.mean(dim=0).unsqueeze(0).to(device)
 
             # Predict
@@ -173,7 +194,13 @@ if __name__ == "__main__":
         default=0.0,
         help="Confidence threshold",
     )
+    parser.add_argument(
+        "--num-levels",
+        type=int,
+        default=1,
+        help="Number of RVQ levels to use (must match training)",
+    )
 
     args = parser.parse_args()
 
-    evaluate_dataset(args.dataset, args.model, args.codebooks, args.threshold)
+    evaluate_dataset(args.dataset, args.model, args.codebooks, args.num_levels, args.threshold)
