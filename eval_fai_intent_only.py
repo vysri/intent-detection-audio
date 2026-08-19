@@ -179,8 +179,18 @@ if __name__ == "__main__":
         help="Path to JSONL dataset",
     )
     parser.add_argument(
+        "--num-levels",
+        type=int,
+        default=1,
+        help="Number of RVQ levels to use (must match training)",
+    )
+
+    # Parse first to get num_levels for default model path
+    args, remaining = parser.parse_known_args()
+
+    parser.add_argument(
         "--model",
-        default="checkpoints/intent_classifier.pt",
+        default=f"checkpoints/intent_classifier_{args.num_levels}level{'s' if args.num_levels > 1 else ''}.pt",
         help="Path to trained model",
     )
     parser.add_argument(
@@ -193,12 +203,6 @@ if __name__ == "__main__":
         type=float,
         default=0.0,
         help="Confidence threshold",
-    )
-    parser.add_argument(
-        "--num-levels",
-        type=int,
-        default=1,
-        help="Number of RVQ levels to use (must match training)",
     )
 
     args = parser.parse_args()

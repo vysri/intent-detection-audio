@@ -135,10 +135,11 @@ def train(num_levels=1):
         avg_loss = total_loss / num_batches
         print(f"Epoch {epoch + 1}/{num_epochs} | Loss: {avg_loss:.4f}")
 
-    # Save model
+    # Save model with level info in filename
     os.makedirs("checkpoints", exist_ok=True)
-    torch.save(model.state_dict(), "checkpoints/intent_classifier.pt")
-    print("\nModel saved to checkpoints/intent_classifier.pt")
+    checkpoint_name = f"checkpoints/intent_classifier_{num_levels}level{'s' if num_levels > 1 else ''}.pt"
+    torch.save(model.state_dict(), checkpoint_name)
+    print(f"\nModel saved to {checkpoint_name}")
 
 
 if __name__ == "__main__":
