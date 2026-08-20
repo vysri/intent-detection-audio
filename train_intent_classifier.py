@@ -24,10 +24,10 @@ class IntentDataset(Dataset):
             for line in f:
                 sample = json.loads(line)
                 if sample["action"] in INTENT_TO_ID:
-                    # Validate number of levels
-                    assert sample["num_levels"] == num_levels, \
-                        f"Sample has {sample['num_levels']} levels but expected {num_levels}. " \
-                        f"Run build_fai_dataset.py with --num-levels={sample['num_levels']}"
+                    # Validate that dataset has at least num_levels
+                    assert sample["num_levels"] >= num_levels, \
+                        f"Sample has {sample['num_levels']} levels but {num_levels} requested. " \
+                        f"Dataset must have at least {num_levels} levels."
                     self.samples.append(sample)
 
     def __len__(self):

@@ -45,10 +45,10 @@ def evaluate_dataset(jsonl_path, model_path, codebooks_path, num_levels=1, thres
     with open(jsonl_path, "r") as f:
         for line in f:
             sample = json.loads(line)
-            # Validate number of levels
-            assert sample.get("num_levels", 1) == num_levels, \
-                f"Sample has {sample.get('num_levels', 1)} levels but expected {num_levels}. " \
-                f"Run build_fai_dataset.py with --num-levels={sample.get('num_levels', 1)}"
+            # Validate that dataset has at least num_levels
+            assert sample.get("num_levels", 1) >= num_levels, \
+                f"Sample has {sample.get('num_levels', 1)} levels but {num_levels} requested. " \
+                f"Dataset must have at least {num_levels} levels."
             samples.append(sample)
 
     print(f"Loaded {len(samples)} samples\n")
