@@ -79,14 +79,15 @@ class IntentClassifier(nn.Module):
         return x
 
 
-def train(num_levels=1):
+
+def train(num_levels, embed_loc, dataset_loc):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}\n")
     print(f"Training with {num_levels} RVQ level(s)\n")
 
     # Load codebooks (frozen)
     print("Loading Mimi codebooks...")
-    all_codebooks = torch.load("mimi_codebooks.pt")
+    all_codebooks = torch.load(embed_loc, map_location=device)
     assert len(all_codebooks) >= num_levels, \
         f"Only {len(all_codebooks)} levels available but {num_levels} requested. " \
         f"Run build_fai_dataset.py with --num-levels={num_levels}"
@@ -102,7 +103,7 @@ def train(num_levels=1):
 
     # Load dataset
     print("Loading dataset...")
-    dataset = IntentDataset("fai_dataset.jsonl", codebooks, num_levels)
+    dataset = IntentDataset(dataset_loc, codebooks, num_levels)
     print(f"Loaded {len(dataset)} samples\n")
 
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
@@ -137,7 +138,7 @@ def train(num_levels=1):
 
     # Save model with level info in filename
     os.makedirs("checkpoints", exist_ok=True)
-    checkpoint_name = f"checkpoints/intent_classifier_{num_levels}level{'s' if num_levels > 1 else ''}.pt"
+    checkpoint_name = f"checkpoints/intent_classifier_mimi_{num_levels}levels.pt"
     torch.save(model.state_dict(), checkpoint_name)
     print(f"\nModel saved to {checkpoint_name}")
 
@@ -147,7 +148,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_levels", required=True, type=int, help="Number of RVQ levels to use (1-32)")
+    parser.add_argument("--embed_loc", required=True, type=str, help="Location of Mimi codebook embeddings")
+    parser.add_argument("--dataset_loc", required=True, type=str, help="Location of the training dataset that has the code indices extracted from Mimi's quantizer")
     args = parser.parse_args()
 
     print("Training Intent Classifier...\n")
-    train(num_levels=args.num_levels)
+    train(num_levels=args.num_levels, embed_loc=args.embed_loc, dataset_loc=args.dataset_loc)

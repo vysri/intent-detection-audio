@@ -55,7 +55,7 @@ if __name__ == "__main__":
         description="Extract N levels of Mimi codebooks for intent classification"
     )
     parser.add_argument(
-        "--num-levels",
+        "--num_levels",
         type=int,
         required=True,
         help="Number of RVQ levels to extract (1-32)",
@@ -68,4 +68,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    extract_codebooks(args.num_levels, args.output)
+    extract_codebooks(args.num_levels, f"{args.output}_{args.num_levels}.pt")
