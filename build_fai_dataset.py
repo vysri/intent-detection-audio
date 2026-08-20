@@ -29,7 +29,7 @@ def build_fai_dataset(input_dir, output_file, batch_size=8, checkpoint_interval=
     feature_extractor = AutoFeatureExtractor.from_pretrained("kyutai/mimi")
 
     input_path = Path(input_dir)
-    json_files = sorted(input_path.glob("fai-*.json"))
+    json_files = sorted(input_path.glob("*.json"))
 
     print(f"Found {len(json_files)} samples\n")
     print(f"Processing in batches of {batch_size}...\n")
@@ -152,11 +152,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="fluent-ai-excerpt", help="Input directory")
     parser.add_argument("--output", default="fai_dataset.jsonl", help="Output JSONL file")
-    parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
-    parser.add_argument("--checkpoint-interval", type=int, default=10, help="Checkpoint every N batches")
-    parser.add_argument("--num-levels", type=int, default=1, help="Number of RVQ levels to extract (1-32)")
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size")
+    parser.add_argument("--checkpoint_interval", type=int, default=10, help="Checkpoint every N batches")
+    parser.add_argument("--num_levels", type=int, required=True, help="Number of RVQ levels to extract (1-32)")
 
     args = parser.parse_args()
+
+    assert args.num_levels is not None, "Please specify --num_levels (1-32)"
 
     print(f"Building Fluent AI dataset with {args.num_levels} RVQ level(s)...\n")
     build_fai_dataset(args.input, args.output, args.batch_size, args.checkpoint_interval, args.num_levels)

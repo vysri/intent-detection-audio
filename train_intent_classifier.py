@@ -146,7 +146,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num-levels", type=int, default=1, help="Number of RVQ levels to use (1-32)")
+    parser.add_argument("--num_levels", required=True, type=int, help="Number of RVQ levels to use (1-32)")
     args = parser.parse_args()
 
     print("Training Intent Classifier...\n")

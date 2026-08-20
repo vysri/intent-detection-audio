@@ -179,9 +179,9 @@ if __name__ == "__main__":
         help="Path to JSONL dataset",
     )
     parser.add_argument(
-        "--num-levels",
+        "--num_levels",
         type=int,
-        default=1,
+        required=True,
         help="Number of RVQ levels to use (must match training)",
     )
 
