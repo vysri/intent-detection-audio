@@ -70,7 +70,7 @@ Outputs: `mimi_codebooks_5.pt`
 
 ### 2. Build Dataset
 ```bash
-python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --num-levels 5
+python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --num_levels 5
 ```
 Outputs: `fai_dataset.jsonl`
 
