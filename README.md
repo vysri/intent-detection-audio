@@ -70,7 +70,7 @@ Outputs: `mimi_codebooks_5.pt`
 
 ### 2. Build Dataset
 ```bash
-python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --num-levels 5
+python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --num_levels 5
 ```
 Outputs: `fai_dataset.jsonl`
 
@@ -87,7 +87,9 @@ Outputs: `checkpoints/intent_classifier_mimi_5levels.pt`
 ```bash
 python audio_intent_classification/eval_fai_intent_only.py \
   --num_levels 5 \
-  --dataset fai_dataset.jsonl
+  --dataset fai_dataset.jsonl \
+  --model checkpoints/intent_classifier_mimi_5levels.pt \
+  --embed_path mimi_codebooks_5.pt
 ```
 
 ## Text Intent Classification (Comparison)
@@ -102,15 +104,17 @@ Adds `sentence_embedding` field (all-MiniLM-L6-v2, 384-dim) to each sample.
 
 ### 2. Train Text Classifier
 ```bash
-python text_intent_classification/train_intent_classifier_text.py \
-  --dataset_loc fai_dataset.jsonl
+python text_intent_classification/train_intent_classifier_text.py
 ```
 Outputs: `checkpoints/intent_classifier_text.pt`
+
+Note: Loads `fai_dataset.jsonl` directly (must have `sentence_embedding` field from step 1)
 
 ### 3. Evaluate Text Classifier
 ```bash
 python text_intent_classification/eval_intent_classifier_text.py \
-  --dataset fai_dataset.jsonl
+  --dataset fai_dataset.jsonl \
+  --model checkpoints/intent_classifier_text.pt
 ```
 
 ## Configuration
