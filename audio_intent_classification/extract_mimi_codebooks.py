@@ -23,34 +23,35 @@ def extract_codebooks(num_levels, output_file="mimi_codebooks.pt"):
     model.to(device)
     model.eval()
 
-    # Extract codebooks from semantic and acoustic quantizers
+    # Extract codebooks matching Mimi's structure:
+    # Level 0: semantic (from semantic_residual_vector_quantizer)
+    # Levels 1+: acoustic residuals (from acoustic_residual_vector_quantizer)
     codebooks = []
     quantizer = model.quantizer
 
-    # Level 0: semantic (linguistic meaning)
-    if num_levels >= 1 and hasattr(quantizer, "semantic_residual_vector_quantizer"):
-        semantic_vq = quantizer.semantic_residual_vector_quantizer
-        if hasattr(semantic_vq, "layers"):
-            layer = semantic_vq.layers[0]
-            if hasattr(layer, "codebook"):
-                codebook = layer.codebook
-                if hasattr(codebook, "embed"):
-                    vectors = codebook.embed.data.detach().cpu()
+    # Level 0: semantic codebook
+    if num_levels >= 1:
+        if hasattr(quantizer, "semantic_residual_vector_quantizer"):
+            semantic_vq = quantizer.semantic_residual_vector_quantizer
+            if hasattr(semantic_vq, "layers") and len(semantic_vq.layers) > 0:
+                layer = semantic_vq.layers[0]
+                if hasattr(layer, "codebook") and hasattr(layer.codebook, "embed"):
+                    vectors = layer.codebook.embed.data.detach().cpu()
                     codebooks.append(vectors)
                     print(f"Level 0 (semantic): shape {vectors.shape}")
 
     # Levels 1+: acoustic residuals
-    if num_levels > 1 and hasattr(quantizer, "acoustic_residual_vector_quantizer"):
-        acoustic_vq = quantizer.acoustic_residual_vector_quantizer
-        print(f"Num acoustic quantizers available: {quantizer.num_acoustic_quantizers}\n")
+    if num_levels > 1:
+        if hasattr(quantizer, "acoustic_residual_vector_quantizer"):
+            acoustic_vq = quantizer.acoustic_residual_vector_quantizer
+            print(f"Num acoustic quantizers available: {quantizer.num_acoustic_quantizers}\n")
 
-        if hasattr(acoustic_vq, "layers"):
-            for level in range(1, num_levels):
-                layer = acoustic_vq.layers[level - 1]
-                if hasattr(layer, "codebook"):
-                    codebook = layer.codebook
-                    if hasattr(codebook, "embed"):
-                        vectors = codebook.embed.data.detach().cpu()
+            if hasattr(acoustic_vq, "layers"):
+                for level in range(1, num_levels):
+                    # acoustic_vq.layers[0] corresponds to audio_codes level 1
+                    layer = acoustic_vq.layers[level - 1]
+                    if hasattr(layer, "codebook") and hasattr(layer.codebook, "embed"):
+                        vectors = layer.codebook.embed.data.detach().cpu()
                         codebooks.append(vectors)
                         print(f"Level {level} (acoustic): shape {vectors.shape}")
 
