@@ -2,11 +2,16 @@
 
 Uses the Mimi neural audio codec to extract RVQ codes and classifies intent from audio. Also compares to a text version.
 
-## Dependencies
+## Dependencies & Environment
 
-Python 3.11.5. Install with:
+Python 3.11.5 required. Create environment and install:
 
 ```bash
+# Create conda environment
+conda create -n mimi-intent python=3.11.5
+conda activate mimi-intent
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
