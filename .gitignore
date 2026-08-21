@@ -1,8 +1,7 @@
 # Data and datasets
 *.jsonl
 data/
-fluent-ai-excerpt/
-fluent-ai-excerpt-val/
+fluent-ai-excerpt*
 *.tar
 *.tar.gz
 
