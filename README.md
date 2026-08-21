@@ -15,6 +15,32 @@ conda activate mimi-intent
 pip install -r requirements.txt
 ```
 
+## Data
+
+### Fluent Speech Commands Dataset
+
+Download and extract to `fluent-ai-excerpt/` **first**:
+
+```bash
+# Training data (part 1 & 2 - both into same folder)
+wget https://zenodo.org/records/14722453/files/fluentspeechcommands_train_0000000.tar
+wget https://zenodo.org/records/14722453/files/fluentspeechcommands_train_0000001.tar
+tar -xf fluentspeechcommands_train_0000000.tar -C fluent-ai-excerpt-train/
+tar -xf fluentspeechcommands_train_0000001.tar -C fluent-ai-excerpt-train/
+
+# Validation data
+wget https://zenodo.org/records/14722453/files/fluentspeechcommands_valid_0000000.tar
+tar -xf fluentspeechcommands_valid_0000000.tar -C fluent-ai-excerpt-val/
+```
+
+Dataset format: JSON + WAV pairs
+- `*.json` — metadata with `action`, `object`, `location`, `transcription`
+- `*.wav` — 16kHz audio
+
+### Intent Labels
+
+6 intents: `increase`, `decrease`, `activate`, `deactivate`, `change language`, `bring`
+
 ## Project Structure
 
 ### Audio Intent Classification Pipeline
@@ -44,7 +70,7 @@ Outputs: `mimi_codebooks_5.pt`
 
 ### 2. Build Dataset
 ```bash
-python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt --num-levels 5
+python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --num-levels 5
 ```
 Outputs: `fai_dataset.jsonl`
 
@@ -63,32 +89,6 @@ python audio_intent_classification/eval_fai_intent_only.py \
   --num_levels 5 \
   --dataset fai_dataset.jsonl
 ```
-
-## Data
-
-### Fluent Speech Commands Dataset
-
-Download and extract to `fluent-ai-excerpt/`:
-
-```bash
-# Training data (part 1 & 2 - both into same folder)
-wget https://zenodo.org/records/14722453/files/fluentspeechcommands_train_0000000.tar
-wget https://zenodo.org/records/14722453/files/fluentspeechcommands_train_0000001.tar
-tar -xf fluentspeechcommands_train_0000000.tar -C fluent-ai-excerpt-train/
-tar -xf fluentspeechcommands_train_0000001.tar -C fluent-ai-excerpt-train/
-
-# Validation data
-wget https://zenodo.org/records/14722453/files/fluentspeechcommands_valid_0000000.tar
-tar -xf fluentspeechcommands_valid_0000000.tar -C fluent-ai-excerpt-val/
-```
-
-Dataset format: JSON + WAV pairs
-- `*.json` — metadata with `action`, `object`, `location`, `transcription`
-- `*.wav` — 16kHz audio
-
-### Intent Labels
-
-6 intents: `increase`, `decrease`, `activate`, `deactivate`, `change language`, `bring`
 
 ## Text Intent Classification (Comparison)
 
