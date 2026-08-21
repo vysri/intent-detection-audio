@@ -174,8 +174,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--dataset",
-        default="fai_dataset.jsonl",
+        "--dataset_path",
+        required=True,
         help="Path to JSONL dataset",
     )
     parser.add_argument(
@@ -207,4 +207,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    evaluate_dataset(args.dataset, args.model, args.embed_path, args.num_levels, args.threshold)
+    evaluate_dataset(args.dataset_path, args.model, args.embed_path, args.num_levels, args.threshold)

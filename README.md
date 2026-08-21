@@ -72,23 +72,29 @@ Outputs: `mimi_codebooks_5.pt`
 ```bash
 python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --num_levels 5
 ```
-Outputs: `fai_dataset.jsonl`
+Outputs: `fai_dataset_train.jsonl`
+
+```bash
+python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-val --num_levels 5
+```
+Outputs: `fai_dataset_val.jsonl`
 
 ### 3. Train
 ```bash
 python audio_intent_classification/train_intent_classifier.py \
-  --num_levels 5 \
+  --num_levels 1 \
   --embed_loc mimi_codebooks_5.pt \
-  --dataset_loc fai_dataset.jsonl
+  --dataset_loc fai_dataset_train.jsonl
 ```
-Outputs: `checkpoints/intent_classifier_mimi_5levels.pt`
+
+Outputs: `checkpoints/intent_classifier_mimi_1levels.pt`
 
 ### 4. Evaluate
 ```bash
 python audio_intent_classification/eval_fai_intent_only.py \
-  --num_levels 5 \
-  --dataset fai_dataset.jsonl \
-  --model checkpoints/intent_classifier_mimi_5levels.pt \
+  --num_levels 1 \
+  --dataset fai_dataset_val.jsonl \
+  --model checkpoints/intent_classifier_mimi_1levels.pt \
   --embed_path mimi_codebooks_5.pt
 ```
 
