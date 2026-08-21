@@ -64,9 +64,14 @@ Dataset format: JSON + WAV pairs
 
 ### 1. Extract Codebooks (one-time)
 ```bash
-python audio_intent_classification/extract_mimi_codebooks.py --num_levels 5
+python audio_intent_classification/extract_mimi_codebooks.py --output mimi_codebooks_train --num_levels 5
 ```
-Outputs: `mimi_codebooks_5.pt`
+Outputs: `mimi_codebooks_train_5.pt`
+
+```bash
+python audio_intent_classification/extract_mimi_codebooks.py --output mimi_codebooks_val --num_levels 5
+```
+Outputs: `mimi_codebooks_val_5.pt`
 
 ### 2. Build Dataset
 ```bash
@@ -83,7 +88,7 @@ Outputs: `fai_dataset_val.jsonl`
 ```bash
 python audio_intent_classification/train_intent_classifier.py \
   --num_levels 1 \
-  --embed_loc mimi_codebooks_5.pt \
+  --embed_loc mimi_codebooks_train_5.pt \
   --dataset_loc fai_dataset_train.jsonl
 ```
 
@@ -95,7 +100,7 @@ python audio_intent_classification/eval_fai_intent_only.py \
   --num_levels 1 \
   --dataset fai_dataset_val.jsonl \
   --model checkpoints/intent_classifier_mimi_1levels.pt \
-  --embed_path mimi_codebooks_5.pt
+  --embed_path mimi_codebooks_val_5.pt
 ```
 
 ## Text Intent Classification (Comparison)
