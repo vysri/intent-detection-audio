@@ -42,7 +42,7 @@ class IntentDataset(Dataset):
         # Look up codebook vectors for each level and concatenate
         all_vectors = []
         for level in range(self.num_levels):
-            level_codes = [frame[level] for frame in codes]
+            level_codes = torch.tensor([frame[level] for frame in codes], dtype=torch.long)
             codebook = self.codebooks[level]
             level_vectors = codebook[level_codes]  # (num_frames, embed_dim)
             all_vectors.append(level_vectors)
