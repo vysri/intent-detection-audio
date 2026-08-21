@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="fluent-ai-excerpt", help="Input directory")
-    parser.add_argument("--output", default="fai_dataset.jsonl", help="Output JSONL file")
+    parser.add_argument("--output", required=True, help="Output JSONL filepath")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size")
     parser.add_argument("--checkpoint_interval", type=int, default=10, help="Checkpoint every N batches")
     parser.add_argument("--num_levels", type=int, required=True, help="Number of RVQ levels to extract (1-32)")

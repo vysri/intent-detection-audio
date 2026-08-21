@@ -75,12 +75,12 @@ Outputs: `mimi_codebooks_val_5.pt`
 
 ### 2. Build Dataset
 ```bash
-python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --num_levels 5
+python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-train --output fai_dataset_train.jsonl --num_levels 5
 ```
 Outputs: `fai_dataset_train.jsonl`
 
 ```bash
-python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-val --num_levels 5
+python audio_intent_classification/build_fai_dataset.py --input fluent-ai-excerpt-val --output fai_dataset_val.jsonl --num_levels 5
 ```
 Outputs: `fai_dataset_val.jsonl`
 
