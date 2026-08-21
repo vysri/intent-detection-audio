@@ -190,13 +190,13 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--model",
-        default=f"checkpoints/intent_classifier_{args.num_levels}level{'s' if args.num_levels > 1 else ''}.pt",
+        required=True,
         help="Path to trained model",
     )
     parser.add_argument(
-        "--codebooks",
-        default="mimi_codebooks.pt",
-        help="Path to frozen codebooks",
+        "--embed_path",
+        required=True,
+        help="Path to frozen codebook embeddings",
     )
     parser.add_argument(
         "--threshold",
@@ -207,4 +207,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    evaluate_dataset(args.dataset, args.model, args.codebooks, args.num_levels, args.threshold)
+    evaluate_dataset(args.dataset, args.model, args.embed_path, args.num_levels, args.threshold)
